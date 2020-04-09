@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>todo</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <style>
+        #app {
+            width: 600px;
+            margin: 30px auto;
+            font-size: 20px;
+        }
+
+        .list,
+        .btns {
+            margin-top: 20px;
+        }
+
+        .list div {
+            height: 30px;
+            line-height: 30px;
+        }
+
+        .del {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-input v-model="value" placeholder="what needs to be done" @keyup.enter.native="add"></el-input>
+
+    <div v-if="list" class="list">
+        <div v-for="(item,index) in list"
+             @mouseover="mouseOver(item)"
+             @mouseout="mouseOut(item)">
+
+            <el-row type="flex" class="row-bg" justify="between">
+                <el-col :span="16">
+                    <el-checkbox v-model="item.checked" @change="change">{{item.label}}</el-checkbox>
+                </el-col>
+                <el-col :span="2">
+                    <div v-show="item.isHover"><span class="del" @click="deletes(index)">x</span></div>
+                </el-col>
+            </el-row>
+
+        </div>
+    </div>
+
+    <div class="btns">
+        <span>{{todoLength}}items to do</span>
+        <el-button :type="selected == 0 ? 'primary':''" @click="getAll(0)">all</el-button>
+        <el-button :type="selected == 1 ? 'primary':''" @click="active(1)">active</el-button>
+        <el-button :type="selected == 2 ? 'primary':''" @click="completed(2)">completed</el-button>
+        <el-button v-if="isComplete" @click="clear">clear completed</el-button>
+    </div>
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            value: "",
+            allList: [],
+            list: [],
+            selected: 4,
+            todoLength: 0,
+        },
+        computed: {
+            isComplete() {
+                let list = this.list || [];
+                let state = list.some(item => {
+                    return item.checked === true;
+                })
+                return state
+            }
+        },
+        created() {
+            this.allList = JSON.parse(localStorage.getItem('list')) || [];
+            this.list = this.allList;
+            this.getLength();
+        },
+        methods: {
+            add() {
+                let item = this.value;
+                this.allList.push({checked: false, label: item});
+                this.update();
+                this.getLength();
+                if (this.selected == 2) {
+                    this.filter(true);
+                }
+                this.value = '';
+            },
+            change() {
+                this.getLength();
+                let selected = this.selected;
+                if (selected == 1) {
+                    this.filter(false);
+                } else if (selected == 2) {
+                    this.filter(true);
+                }
+
+            },
+            update() {
+                localStorage.setItem('list', JSON.stringify(this.allList));
+            },
+            // 剩下几条要做的
+            getLength() {
+                let list = this.allList;
+                let sum = 0;
+                list.forEach(item => {
+                    if (!item.checked) {
+                        sum += 1
+                    }
+                });
+                this.todoLength = sum;
+            },
+            getAll(index) {
+                this.list = this.allList;
+                this.selected = index;
+            },
+            // 待办
+            active(index) {
+                this.filter(false);
+                this.selected = index;
+            },
+            // 已完成
+            completed(index) {
+                this.filter(true);
+                this.selected = index;
+            },
+            filter(condition) {
+                let list = this.allList;
+                let newList = list.filter((item) => {
+                    return item.checked === condition
+                });
+                this.list = newList;
+            },
+            clear() {
+                let list = this.allList;
+                let newList = [];
+                list.forEach((item) => {
+                    if (!item.checked) {
+                        newList.push(item);
+                    }
+                })
+                this.allList = newList;
+                this.list = newList;
+                this.update();
+            },
+            mouseOver(obj) {
+                this.$set(obj, 'isHover', true);
+            },
+            mouseOut(obj) {
+                this.$set(obj, 'isHover', false);
+            },
+            deletes(index) {
+                this.list.splice(index, 1);
+                this.allList = this.list;
+                this.getLength();
+                this.update();
+            }
+        }
+    })
+</script>
+</body>
+</html>
